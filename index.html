@@ -529,13 +529,33 @@
       const n        = inputIds.length;
 
       /* ── Run the model once to get logits ────────────────────── */
-      // Build an Int64 Tensor of shape [1, n]
+      // Transformers.js v3 requires attention_mask and position_ids
+      // in addition to input_ids — build all three tensors.
+
+      // input_ids: the token IDs [1, n]
       const inputTensor = new Tensor(
         'int64',
         BigInt64Array.from(inputIds.map(BigInt)),
         [1, n]
       );
-      const output = await model({ input_ids: inputTensor });
+      // attention_mask: all 1s — every token is "real" (not padding)
+      const attentionMask = new Tensor(
+        'int64',
+        BigInt64Array.from(Array(n).fill(1n)),
+        [1, n]
+      );
+      // position_ids: 0, 1, 2, …, n-1
+      const positionIds = new Tensor(
+        'int64',
+        BigInt64Array.from(Array.from({ length: n }, (_, i) => BigInt(i))),
+        [1, n]
+      );
+
+      const output = await model({
+        input_ids:      inputTensor,
+        attention_mask: attentionMask,
+        position_ids:   positionIds,
+      });
 
       // logits.dims = [1, n, vocabSize]
       const logits    = output.logits;
